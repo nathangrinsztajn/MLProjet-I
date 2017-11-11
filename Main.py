@@ -33,7 +33,7 @@ model.add(Dense(100, activation='relu'))
 model.add(Dense(1, activation='sigmoid'))
 
 # compile model
-model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy', gini_normalized])
 
 
 # Fit the model
