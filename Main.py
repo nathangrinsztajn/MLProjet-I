@@ -37,7 +37,7 @@ model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy']
 
 
 # Fit the model
-model.fit(X_train, y_train, nb_epoch=500, batch_size=32,  verbose=2)
+model.fit(X_train, y_train, nb_epoch=400, batch_size=32,  verbose=2)
 
 yPred = model.predict(X_test)
 print("yPred = ")
@@ -48,5 +48,5 @@ yPredClass = [int(round(x[0])) for x in yPred]
 print("yPredClass = ")
 print(sum(yPredClass))
 print(len(yPred), len(y_test))
-print(gini_normalized(y_test, yPredClass))
+print(gini_normalized(y_test, yPred))
 print(pd.crosstab(np.array(yPredClass), np.array(y_test)))
