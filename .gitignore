@@ -190,4 +190,7 @@ ENV/
 # mkdocs documentation
 /site
 
+# Data
+*.csv
+
 # End of https://www.gitignore.io/api/macos,python,pycharm
