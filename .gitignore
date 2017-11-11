@@ -190,7 +190,27 @@ ENV/
 # mkdocs documentation
 /site
 
-# Data
+### Data ###
 *.csv
+*.dat
+*.efx
+*.gbr
+*.key
+*.pps
+*.ppt
+*.pptx
+*.sdf
+*.tax2010
+*.vcf
+*.xml
+
+### Database ###
+*.accdb
+*.db
+*.dbf
+*.mdb
+*.pdb
+*.sql
+*.sqlite3
 
 # End of https://www.gitignore.io/api/macos,python,pycharm
