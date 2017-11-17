@@ -37,6 +37,9 @@ Temporary Items
 .idea/**/workspace.xml
 .idea/**/tasks.xml
 .idea/dictionaries
+test.py
+*.check
+*.log
 
 # Sensitive or high-churn files:
 .idea/**/dataSources/
