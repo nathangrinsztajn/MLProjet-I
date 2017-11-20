@@ -1,0 +1,77 @@
+
+```{r}
+
+train=read.table("./train.csv",header=T,sep=",",row.names = 1)
+summary(train)
+train[train==-1]=NA
+train_small=train[1:10000,]
+
+cat=c()
+bin=c()
+num=c()
+
+for (i in 1:length(colnames(train))){
+  if(substr(colnames(train)[i], nchar(colnames(train)[i])-3+1, nchar(colnames(train)[i])) =="cat"){
+    cat=c(cat,i)
+  }
+  else if(substr(colnames(train)[i], nchar(colnames(train)[i])-3+1, nchar(colnames(train)[i])) =="bin"){
+    bin=c(bin,i)
+  }
+  else{
+    num=c(num,i)
+  }
+}
+
+
+#pour mettre les variables de type bin et cat en factor
+for (i in bin){
+train_small[,i]=as.factor(train_small[,i])
+train[,i]=as.factor(train[,i])
+}
+for (i in cat){
+train_small[,i]=as.factor(train_small[,i])
+train[,i]=as.factor(train[,i])
+}
+
+
+library(VIM)
+library(FactoMineR)
+
+#see where is the missing data
+res<-summary(aggr(train, sortVar=TRUE))$combinations
+
+library("missMDA")
+library(Amelia)
+```
+
+We have separated the variables: categorical, binary and numerical. We can now perform multiple imputation, treating categorical with MCA and numerical+binary with PCA
+
+
+```{r}
+
+
+#separate data by type
+train_cat=train[,cat]
+train_bin=train[,bin]
+train_num=train[,num]
+
+#this function gives the most represented value (other than NA)
+mode <- function(x) {
+  x=x[!is.na(x)]
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+
+#replace NAs by: mean (for numerical variables) and most represented value 
+#(for categorical variables). There is no missing values in bin
+for(i in 1:ncol(train_num)){
+  train_num[is.na(train_num[,i]), i] <- mean(train_num[,i], na.rm = TRUE)
+}
+for(i in 1:ncol(train_cat)){
+  train_cat[is.na(train_cat[,i]), i] <- mode(train_cat[,i])
+}
+
+
+
+```
+
