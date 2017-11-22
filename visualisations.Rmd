@@ -1,0 +1,808 @@
+
+We begin by loading the data and treating categorical and binary variables as factors. We also give a quick look at the missing data.
+
+```{r}
+library(plyr)
+
+train=read.table("./train.csv",header=T,sep=",",row.names = 1)
+train[train==-1]=NA
+train$target=as.factor(train$target)
+train$target=revalue(train$target, c("0"="Not Filed", "1"="Filed"))
+
+train_small=train[1:50000,]
+
+
+cat=c()
+bin=c(1)
+num=c()
+
+for (i in 2:length(colnames(train))){
+  if(substr(colnames(train)[i], nchar(colnames(train)[i])-3+1, nchar(colnames(train)[i])) =="cat"){
+    cat=c(cat,i)
+  }
+  else if(substr(colnames(train)[i], nchar(colnames(train)[i])-3+1, nchar(colnames(train)[i])) =="bin"){
+    bin=c(bin,i)
+  }
+  else{
+    num=c(num,i)
+  }
+}
+
+
+#pour mettre les variables de type bin et cat en factor
+for (i in bin){
+train_small[,i]=as.factor(train_small[,i])
+train[,i]=as.factor(train[,i])
+}
+for (i in cat){
+train_small[,i]=as.factor(train_small[,i])
+train[,i]=as.factor(train[,i])
+}
+
+
+library(VIM)
+library(FactoMineR)
+library(Amelia)
+
+#see where is the missing data
+res<-summary(aggr(train, sortVar=TRUE))$combinations
+
+
+```
+
+We notice that two variables have a lot of missing data: ps_car_03_cat and ps_car_05_cat. There are a lot of variables with no missing data at all. The binary variables have no missing data.
+
+Let's separate our dataframe into three (binary, numerical and categorical).
+
+
+```{r}
+
+
+#separate data by type
+train_cat=train[,cat]
+train_bin=train[,bin]
+train_num=train[,num]
+
+train_small_cat=train_small[,cat]
+train_small_bin=train_small[,bin]
+train_small_num=train_small[,num]
+
+
+
+
+```
+
+
+Now let's visualize our data.
+We will begin with the target variable.
+
+```{r}
+library(ggplot2)
+ggplot(train)+aes(target)+geom_bar()
+```
+
+We see that there is much more people with no claim filed. We calculate the percentage: 
+```{r}
+sum(train$target=="Filed")/dim(train)[1]
+```
+
+There is approximately 3.6% drivers with a claim filed.
+
+Let's look at all other binary variables. We will plot both their distribution and their relation with the target variable.
+
+```{r}
+ggplot(train)+aes(ps_ind_06_bin,fill=target)+geom_bar()
+ggplot(train)+aes(ps_ind_06_bin,fill=target)+geom_bar()
+ggplot(train)+aes(ps_ind_07_bin,fill=target)+geom_bar()
+ggplot(train)+aes(ps_ind_08_bin,fill=target)+geom_bar()
+ggplot(train)+aes(ps_ind_09_bin,fill=target)+geom_bar()
+ggplot(train)+aes(ps_ind_10_bin,fill=target)+geom_bar()
+ggplot(train)+aes(ps_ind_11_bin,fill=target)+geom_bar()
+ggplot(train)+aes(ps_ind_12_bin,fill=target)+geom_bar()
+ggplot(train)+aes(ps_ind_13_bin,fill=target)+geom_bar()
+ggplot(train)+aes(ps_ind_16_bin,fill=target)+geom_bar()
+ggplot(train)+aes(ps_ind_17_bin,fill=target)+geom_bar()
+ggplot(train)+aes(ps_ind_18_bin,fill=target)+geom_bar()
+ggplot(train)+aes(ps_calc_15_bin,fill=target)+geom_bar()
+ggplot(train)+aes(ps_calc_16_bin,fill=target)+geom_bar()
+ggplot(train)+aes(ps_calc_17_bin,fill=target)+geom_bar()
+ggplot(train)+aes(ps_calc_18_bin,fill=target)+geom_bar()
+ggplot(train)+aes(ps_calc_19_bin,fill=target)+geom_bar()
+ggplot(train)+aes(ps_calc_20_bin,fill=target)+geom_bar()
+```
+
+Visually, we see no obvious correlation between any binary variable and the target variable.
+We note that 4 binary variables are unbalanced: ps_ind_10_bin, ps_ind_11_bin, ps_ind_12_bin, ps_ind_13_bin. They take a great majority of 0 values.
+There is no missing values in any binary variable.
+
+Now let's have a look at categorical variables and their relation to the target variable.
+
+```{r}
+
+ggplot(train)+aes(ps_ind_02_cat,fill=target)+geom_bar()
+ggplot(train)+aes(ps_ind_02_cat,fill=target)+geom_bar()
+ggplot(train)+aes(ps_ind_04_cat,fill=target)+geom_bar()
+ggplot(train)+aes(ps_ind_05_cat,fill=target)+geom_bar()
+ggplot(train)+aes(ps_car_01_cat,fill=target)+geom_bar()
+ggplot(train)+aes(ps_car_02_cat,fill=target)+geom_bar()
+ggplot(train)+aes(ps_car_03_cat,fill=target)+geom_bar()
+ggplot(train)+aes(ps_car_04_cat,fill=target)+geom_bar()
+ggplot(train)+aes(ps_car_05_cat,fill=target)+geom_bar()
+ggplot(train)+aes(ps_car_06_cat,fill=target)+geom_bar()
+ggplot(train)+aes(ps_car_07_cat,fill=target)+geom_bar()
+ggplot(train)+aes(ps_car_08_cat,fill=target)+geom_bar()
+ggplot(train)+aes(ps_car_09_cat,fill=target)+geom_bar()
+ggplot(train)+aes(ps_car_10_cat,fill=target)+geom_bar()
+ggplot(train)+aes(ps_car_11_cat,fill=target)+geom_bar()
+
+
+```
+
+Again, it is hard to visually see any obvious correlation with the target variable.
+We note that except from ps_car_11_cat, the variables have few categories. Here there are some missing values that we will explore more carefully later.
+
+And finally we can visualize the numerical variables and their relation to the target variable. We will first calculate the number of distinct values taken by each numerical variable. When that value is small, we draw a barplot, and when that value is high, we drow a density plot.
+
+
+```{r}
+numb_of_distinct=c()
+for (i in num){
+  numb_of_distinct=c(numb_of_distinct,length(unique(train[,i])))
+}
+numb_of_distinct
+```
+
+We see that only 4 numerical variables can be approximated as continuous, with more that 100 distinct values: ps_reg_03, ps_car_12, ps_car_13, ps_car_14. We can now plot all numerical variables.
+
+```{r}
+ggplot(train)+aes(ps_ind_01,fill=target)+geom_bar()
+ggplot(train)+aes(ps_ind_01,fill=target)+geom_bar()
+ggplot(train)+aes(ps_ind_03,fill=target)+geom_bar()
+ggplot(train)+aes(ps_ind_14,fill=target)+geom_bar()
+ggplot(train)+aes(ps_ind_15,fill=target)+geom_bar()
+ggplot(train)+aes(ps_reg_01,fill=target)+geom_bar()
+ggplot(train)+aes(ps_reg_02,fill=target)+geom_bar()
+ggplot(train)+aes(ps_reg_03,fill=target)+geom_density()
+ggplot(train)+aes(ps_car_11,fill=target)+geom_bar()
+ggplot(train)+aes(ps_car_12,fill=target)+geom_density()
+ggplot(train)+aes(ps_car_13,fill=target)+geom_density()
+ggplot(train)+aes(ps_car_14,fill=target)+geom_density()
+ggplot(train)+aes(ps_car_15,fill=target)+geom_bar()
+ggplot(train)+aes(ps_calc_01,fill=target)+geom_bar()
+ggplot(train)+aes(ps_calc_02,fill=target)+geom_bar()
+ggplot(train)+aes(ps_calc_03,fill=target)+geom_bar()
+ggplot(train)+aes(ps_calc_04,fill=target)+geom_bar()
+ggplot(train)+aes(ps_calc_05,fill=target)+geom_bar()
+ggplot(train)+aes(ps_calc_06,fill=target)+geom_bar()
+ggplot(train)+aes(ps_calc_07,fill=target)+geom_bar()
+ggplot(train)+aes(ps_calc_08,fill=target)+geom_bar()
+ggplot(train)+aes(ps_calc_09,fill=target)+geom_bar()
+ggplot(train)+aes(ps_calc_10,fill=target)+geom_bar()
+ggplot(train)+aes(ps_calc_11,fill=target)+geom_bar()
+ggplot(train)+aes(ps_calc_12,fill=target)+geom_bar()
+ggplot(train)+aes(ps_calc_13,fill=target)+geom_bar()
+ggplot(train)+aes(ps_calc_14,fill=target)+geom_bar()
+
+```
+
+Again we see no obvious correlations from the graphs between numerical variables and the target variable.
+Many variables have a gaussian-like distribution. The ps_cacl_01/02/03 variables are evenly distributed accross the values that they take.
+
+
+By representing the distribution of all single variables, and then coloring by target values, we have noticed that it is hard to visualize any correlation with the target variable. A better way to reveal correlations would be either to draw the propotion of claim filed among groups of individuals with same variables values, or to draw the correlation matrix. Let's do both!
+
+
+Let's start by draw the proportion of files claimed by values taken by the binary feature. We perform a t-test to get a (95%) confidence interval on our estimation of the proportion of claimed files. Indeed, some binary variable values appear rarely and thus our estimation is not very accurate.
+
+```{r}
+library(plyr)
+library(dplyr)
+library(tidyr)
+
+#we must switch back to "0" and "1" for the target variable
+train$target=revalue(train$target, c("Not Filed"="0", "Filed"="1"))
+train$target=as.numeric(train$target)
+train$target=train$target-1
+
+ggplot(data = ddply(
+    train, 
+    .(ps_ind_06_bin), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_ind_06_bin,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_ind_06_bin), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_ind_06_bin,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_ind_07_bin), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_ind_07_bin,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_ind_08_bin), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_ind_08_bin,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_ind_09_bin), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_ind_09_bin,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_ind_10_bin), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_ind_10_bin,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_ind_11_bin), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_ind_11_bin,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_ind_12_bin), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_ind_12_bin,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_ind_13_bin), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_ind_13_bin,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+
+ggplot(data = ddply(
+    train, 
+    .(ps_ind_16_bin), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_ind_16_bin,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_ind_17_bin), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_ind_17_bin,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_ind_18_bin), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_ind_18_bin,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_calc_15_bin), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_calc_15_bin,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_calc_16_bin), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_calc_16_bin,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_calc_17_bin), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_calc_17_bin,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_calc_18_bin), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_calc_18_bin,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_calc_19_bin), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_calc_19_bin,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_calc_20_bin), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_calc_20_bin,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+
+
+```
+
+We are happy to see some correlations here!
+Indeed, we find that some binary variables are strongly correlated with the proportion of claimed filed, and some are not.
+The important binary variables to explain the percentage of claimed files seem to be: ps_ind_06_bin, ps_ind_07_bin, ps_ind_08_bin, ps_ind_09_bin, ps_ind_12_bin, ps_ind_16_bin and ps_ind_17_bin.
+
+Let's do the same now with categorical variables.
+
+```{r}
+
+ggplot(data = ddply(
+    train, 
+    .(ps_ind_02_cat), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_ind_02_cat,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_ind_02_cat), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_ind_02_cat,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_ind_04_cat), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_ind_04_cat,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_ind_05_cat), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_ind_05_cat,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_car_01_cat), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_car_01_cat,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_car_02_cat), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_car_02_cat,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_car_03_cat), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_car_03_cat,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_car_04_cat), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_car_04_cat,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_car_05_cat), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_car_05_cat,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_car_06_cat), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_car_06_cat,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_car_07_cat), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_car_07_cat,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_car_08_cat), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_car_08_cat,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_car_09_cat), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_car_09_cat,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_car_10_cat), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_car_10_cat,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_car_11_cat), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_car_11_cat,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+
+```
+
+
+We find that wherever data is missing, the percentage of filed claims is high (except for ps_car_03_cat).
+We also find that some categorical variables are well corrleated to the percentage of files claimed: ps_ind_05_cat (category 2 vs 0), ps_car_02_cat, ps_car_03_cat, ps_car_07_cat, ps_car_08_cat.
+
+
+ Finally, let's explore numerical values. For the variables which take few values, we plot the barplot as before. 
+ 
+ 
+```{r}
+
+ggplot(data = ddply(
+    train, 
+    .(ps_ind_01), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_ind_01,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_ind_01), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_ind_01,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_ind_03), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_ind_03,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_ind_14), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_ind_14,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_ind_15), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_ind_15,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_reg_01), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_reg_01,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_reg_02), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_reg_02,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+
+ggplot(data = ddply(
+    train, 
+    .(ps_car_11), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_car_11,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_car_15), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_car_15,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_calc_01), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_calc_01,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_calc_02), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_calc_02,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_calc_03), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_calc_03,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_calc_04), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_calc_04,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_calc_05), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_calc_05,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+
+
+ggplot(data = ddply(
+    train, 
+    .(ps_calc_07), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_calc_07,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_calc_08), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_calc_08,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_calc_09), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_calc_09,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+
+
+ggplot(data = ddply(
+    train, 
+    .(ps_calc_12), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_calc_12,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+ggplot(data = ddply(
+    train, 
+    .(ps_calc_13), 
+    summarize, 
+    Filed_percentage=mean(target),
+    lower_bound=t.test(target)$conf.int[1],
+    upper_bound=t.test(target)$conf.int[2])
+       , aes(x=ps_calc_13,y=Filed_percentage))+geom_col()+geom_errorbar(aes(ymin=lower_bound,ymax=upper_bound))
+
+
+#convert our target variable back to "Filed" and "Not Filed"
+train$target=as.factor(train$target)
+train$target=revalue(train$target, c("0"="Not Filed", "1"="Filed"))
+ggplot(train)+aes(ps_reg_03,fill=target)+geom_density()
+ggplot(train)+aes(ps_car_12,fill=target)+geom_density()
+ggplot(train)+aes(ps_car_13,fill=target)+geom_density()
+ggplot(train)+aes(ps_car_14,fill=target)+geom_density()
+
+```
+
+We see that some variables here take so few values that the confidence interval for the t-test is very large.
+The variables which seem interestning for us are: ps_ind_01, ps_ind_03 (especially when the value is 0), ps_ind_15, ps_reg_01, ps_reg_02 ps_reg_03. The ps_car_xx variables show little correlations as well.
+We note that all the ps_calc variables seem to be of low interest concerning the target variable.
+
+
+To sum up, the 23 variables which we found most important for the target variables by looking at the proportion of filed claims accross values are:
+
+ps_ind_01
+ps_ind_02_cat (when missing data only)
+ps_ind_03
+ps_ind_05_cat (when missing data only)
+ps_ind_06_bin
+ps_ind_07_bin
+ps_ind_08_bin
+ps_ind_09_bin
+ps_ind_12_bin
+ps_ind_15
+ps_ind_16_bin
+ps_ind_17_bin
+
+ps_car_02_cat (when missing data only)
+ps_car_03_cat
+ps_car_07_cat
+ps_car_08_cat
+ps_car_11
+ps_car_12
+ps_car_13
+ps_car_14
+
+ps_reg_01
+ps_reg_02 
+ps_reg_03
+
+We see that some catergorical values are helpful when they show missing data. We will keep that missing data for those categorical variables, seeing "NA" as a category.
+
+We will know replace NA values of the numerical variables. The dataset is too large to perform advanced replacement methods like MIPCA (multiple imputation using PCA). Therefore, we simply replace missing values by the mean (numerical variables)
+
+
+```{r}
+for(i in 1:ncol(train_num)){
+  train_num[is.na(train_num[,i]), i] <- mean(train_num[,i], na.rm = TRUE)
+  train_small_num[is.na(train_small_num[,i]), i] <- mean(train_small_num[,i], na.rm = TRUE)
+}
+train[,num]=train_num
+
+```
+
+
+
+Now let's select the variables that we want.
+
+```{r}
+ind_cols <- c("ps_ind_01","ps_ind_02_cat","ps_ind_03","ps_ind_04_cat","ps_ind_05_cat","ps_ind_06_bin","ps_ind_07_bin","ps_ind_08_bin","ps_ind_09_bin","ps_ind_10_bin","ps_ind_11_bin","ps_ind_12_bin","ps_ind_13_bin","ps_ind_14","ps_ind_15","ps_ind_16_bin","ps_ind_17_bin","ps_ind_18_bin")
+reg_cols <- c("ps_reg_01","ps_reg_02","ps_reg_03")
+car_cols <- c("ps_car_01_cat","ps_car_02_cat","ps_car_03_cat","ps_car_04_cat","ps_car_05_cat","ps_car_06_cat","ps_car_07_cat","ps_car_08_cat","ps_car_09_cat","ps_car_10_cat","ps_car_11_cat","ps_car_11","ps_car_12","ps_car_13","ps_car_14","ps_car_15")
+calc_cols <- c("ps_calc_01","ps_calc_02","ps_calc_03","ps_calc_04","ps_calc_05","ps_calc_06","ps_calc_07","ps_calc_08","ps_calc_09","ps_calc_10","ps_calc_11","ps_calc_12","ps_calc_13","ps_calc_14","ps_calc_15_bin","ps_calc_16_bin","ps_calc_17_bin","ps_calc_18_bin","ps_calc_19_bin","ps_calc_20_bin")
+train_cols <- c(ind_cols, reg_cols, car_cols)
+y_col <- c("target")
+
+length(ind_cols)+length(reg_cols)+length(car_cols)+length(calc_cols)==57
+
+library(MLmetrics)
+
+```
+
+
+
+
+
+```{r}
+#this function gives the most represented value (other than NA) for a vector
+mode <- function(x) {
+  x=x[!is.na(x)]
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+
+#replace NAs by: mean (for numerical variables) and most represented value 
+#(for categorical variables). Note: there is no missing values in bin
+for(i in 1:ncol(train_num)){
+  train_num[is.na(train_num[,i]), i] <- mean(train_num[,i], na.rm = TRUE)
+  train_small_num[is.na(train_small_num[,i]), i] <- mean(train_small_num[,i], na.rm = TRUE)
+}
+for(i in 1:ncol(train_cat)){
+  train_cat[is.na(train_cat[,i]), i] <- mode(train_cat[,i])
+  train_small_cat[is.na(train_small_cat[,i]), i] <- mode(train_small_cat[,i])
+
+}
+```
+
+
+
