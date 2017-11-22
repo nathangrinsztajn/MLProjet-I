@@ -7,8 +7,8 @@ import pandas as pd
 #All the data is either int or float, no null value (NA is coded by -1)
 
 def read_data():
-    train = pd.read_csv('../train.csv',index_col=0)
-    test = pd.read_csv('../test.csv',index_col=0)
+    train = pd.read_csv('../train.csv')
+    test = pd.read_csv('../test.csv')
 
     # replace -1 by nan
     train[train == -1] = np.nan
@@ -24,7 +24,26 @@ def read_data():
 
     # train: 595212 rows, 59 columns
 
+    #change the type of categorical columns
+    column_names = train.columns
+    categorical_column = column_names[column_names.str[10] == 'c']
+    for column in categorical_column:
+        train[column] = train[column].astype('category')
+        test[column]=test[column].astype('category')
+
     return(train,test)
+
+
+def create_dummies(df):
+    column_names = df.columns
+    categorical_column = column_names[column_names.str[10] == 'c']
+    for column in categorical_column:
+        dummies = pd.get_dummies(df[column], prefix=column)
+        df = pd.concat([df, dummies], axis=1)
+        ## dropping the original columns ##
+        df.drop([column], axis=1, inplace=True)
+    return(df)
+
 
 def replace_na(df):
     labels=list(df)
