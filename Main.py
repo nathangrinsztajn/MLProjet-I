@@ -1,7 +1,7 @@
 from Gini import *
 import numpy as np
-from data import *
 import pandas as pd
+from load_data import *
 from GestionNA import *
 from PreProcess import *
 from sklearn.model_selection import train_test_split, KFold, cross_val_score
@@ -17,6 +17,7 @@ from keras.layers.normalization import BatchNormalization
 from keras.callbacks import EarlyStopping, ModelCheckpoint, CSVLogger, Callback
 from keras.wrappers.scikit_learn import KerasClassifier
 
+(train,test) = read_data('train.csv', 'test.csv')
 train = dropNA(train)
 print(train.shape)
 

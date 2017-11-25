@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 from load_data import *
 from gini_score import *
 
-train_data,test_data=read_data()
+train_data,test_data=read_data('../train.csv', '../test.csv')
 train_data=replace_na(train_data)
 test_data=replace_na(test_data)
 

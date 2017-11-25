@@ -42,10 +42,3 @@ def gini_normalizedc(a, p):
     #if p.ndim == 2:  # Required for sklearn wrapper
     #   p = p[:, 1]  # If proba array contains proba for both 0 and 1 classes, just pick class 1
     return ginic(a, p) / ginic(a, a)
-
-a = [0]*50+[1]*50
-b = np.random.uniform(low=0, high=1, size=100)
-print(b)
-print((roc_auc_score(a, b) * 2 ) - 1)
-print(gini_normalizedc(a, b))
-print(gini_normalized(a, b))

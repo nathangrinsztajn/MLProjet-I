@@ -6,9 +6,11 @@ import pandas as pd
 
 #All the data is either int or float, no null value (NA is coded by -1)
 
-def read_data():
-    train = pd.read_csv('../train.csv')
-    test = pd.read_csv('../test.csv')
+def read_data(pathTrain, pathTest):
+
+    ## par exemple pathTrain = '../train.csv' ou 'train.csv' ##
+    train = pd.read_csv(pathTrain)
+    test = pd.read_csv(pathTest)
 
     # replace -1 by nan
     train[train == -1] = np.nan
@@ -55,6 +57,12 @@ def replace_na(df):
     ## on ne remplace pas forcement les Na des categorical variables ##
     #df[categorical_features] = df[categorical_features].apply(lambda x: x.fillna(x.value_counts().index[0]))
     return (df)
+
+
+def createSubmission(SubmissionName, predProb):
+    submit = pd.DataFrame({'id': test_data['id'], 'target': predProb})
+    print(submit.head())
+    submit.to_csv(name, index=False)
 
 
 

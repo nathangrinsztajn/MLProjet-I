@@ -11,7 +11,7 @@ OPTIMIZE_ROUNDS = False
 LEARNING_RATE = 0.07
 EARLY_STOPPING_ROUNDS = 50  
 
-train_data,test_data=read_data()
+train_data,test_data=read_data('../train.csv', '../test.csv')
 train_data=replace_na(train_data)
 test_data=replace_na(test_data)
 
