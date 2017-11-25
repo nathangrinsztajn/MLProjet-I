@@ -62,9 +62,14 @@ def ultimeload(pathTrain, pathTest):
     train, test = read_data(pathTrain, pathTest)
     train, test = create_dummies(train), create_dummies(test)
     train, test = replace_na(train), replace_na(test)
+    X_train = train.iloc[:, 2:]
+    y_train = train.target
+    X_test = test.iloc[:,1:]
+    test_ids = test['id']
+    return (y_train, X_train, X_test, test_ids)
 
-def createSubmission(SubmissionName, predProb, test_data):
-    submit = pd.DataFrame({'id': test_data['id'], 'target': predProb})
+def createSubmission(SubmissionName, predProb, test_ids):
+    submit = pd.DataFrame({'id': test_ids, 'target': predProb})
     print(submit.head())
     submit.to_csv(SubmissionName, index=False)
 
