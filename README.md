@@ -19,4 +19,7 @@ y_train, X_train, X_test, test_ids = ultimeload("../pathTrain", "../pathTest")
 createSubmission("SubmissionName.csv", y_test, test_ids)
 ```
 
- - Il ne reste plus qu'à la soumettre sur Kaggle et voir son nouveau score !
+- Il ne reste plus qu'à la soumettre sur Kaggle et voir son nouveau score !
+
+
+ - conservez vos submissions, ca servira à faire une grande moyenne à la fin !
