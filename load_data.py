@@ -58,6 +58,10 @@ def replace_na(df):
     #df[categorical_features] = df[categorical_features].apply(lambda x: x.fillna(x.value_counts().index[0]))
     return (df)
 
+def ultimeload(pathTrain, pathTest):
+    train, test = read_data(pathTrain, pathTest)
+    train, test = create_dummies(train), create_dummies(test)
+    train, test = replace_na(train), replace_na(test)
 
 def createSubmission(SubmissionName, predProb, test_data):
     submit = pd.DataFrame({'id': test_data['id'], 'target': predProb})
