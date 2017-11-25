@@ -52,7 +52,8 @@ def replace_na(df):
     binary_features = [x for x in labels if x[-3:] == 'bin']
 
     df[numeric_features]=df[numeric_features].fillna(df[numeric_features].mean(),inplace=True)
-    df[categorical_features] = df[categorical_features].apply(lambda x: x.fillna(x.value_counts().index[0]))
+    ## on ne remplace pas forcement les Na des categorical variables ##
+    #df[categorical_features] = df[categorical_features].apply(lambda x: x.fillna(x.value_counts().index[0]))
     return (df)
 
 
