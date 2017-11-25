@@ -59,10 +59,10 @@ def replace_na(df):
     return (df)
 
 
-def createSubmission(SubmissionName, predProb):
+def createSubmission(SubmissionName, predProb, test_data):
     submit = pd.DataFrame({'id': test_data['id'], 'target': predProb})
     print(submit.head())
-    submit.to_csv(name, index=False)
+    submit.to_csv(SubmissionName, index=False)
 
 
 
