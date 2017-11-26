@@ -73,7 +73,7 @@ for i, (train_index, test_index) in enumerate(kf.split(X)):
     # Accumulate test set predictions
     y_test_pred += fit_model.predict_proba(X_test)[:, 1]
 
-    del X_test, X_train, X_valid, y_train
+    del y_valid, X_train, X_valid, y_train
 
 
 y_test_pred /= K  # Average test set predictions
