@@ -9,8 +9,8 @@ import pandas as pd
 def read_data(pathTrain, pathTest):
 
     ## par exemple pathTrain = '../train.csv' ou 'train.csv' ##
-    train = pd.read_csv(pathTrain)
-    test = pd.read_csv(pathTest)
+    train = pd.read_csv(pathTrain, dtype={'target': np.int8, 'id': np.int32})
+    test = pd.read_csv(pathTest, dtype={'id': np.int32})
 
     # replace -1 by nan
     train[train == -1] = np.nan
@@ -40,7 +40,7 @@ def create_dummies(df):
     column_names = df.columns
     categorical_column = column_names[column_names.str[10] == 'c']
     for column in categorical_column:
-        dummies = pd.get_dummies(df[column], prefix=column)
+        dummies = pd.get_dummies(df[column], prefix=column, dummy_na=True)
         df = pd.concat([df, dummies], axis=1)
         ## dropping the original columns ##
         df.drop([column], axis=1, inplace=True)
@@ -52,26 +52,22 @@ def replace_na(df):
     numeric_features = [x for x in labels if x[-3:] not in ['bin', 'cat']]
     categorical_features = [x for x in labels if x[-3:] == 'cat']
     binary_features = [x for x in labels if x[-3:] == 'bin']
-
-    df[numeric_features]=df[numeric_features].fillna(df[numeric_features].mean(),inplace=True)
+    df.loc[:, numeric_features]=df[numeric_features].fillna(df[numeric_features].mean())
     ## on ne remplace pas forcement les Na des categorical variables ##
     #df[categorical_features] = df[categorical_features].apply(lambda x: x.fillna(x.value_counts().index[0]))
     return (df)
 
 def ultimeload(pathTrain, pathTest):
     train, test = read_data(pathTrain, pathTest)
-    train, test = create_dummies(train), create_dummies(test)
-    train, test = replace_na(train), replace_na(test)
     X_train = train.iloc[:, 2:]
     y_train = train.target
     X_test = test.iloc[:,1:]
     test_ids = test['id']
+    X_train, X_test = replace_na(X_train), replace_na(X_test)
+    X_train, X_test = create_dummies(X_train), create_dummies(X_test)
     return (y_train, X_train, X_test, test_ids)
 
 def createSubmission(SubmissionName, predProb, test_ids):
     submit = pd.DataFrame({'id': test_ids, 'target': predProb})
     print(submit.head())
     submit.to_csv(SubmissionName, index=False)
-
-
-
