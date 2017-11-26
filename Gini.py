@@ -42,3 +42,8 @@ def gini_normalizedc(a, p):
     #if p.ndim == 2:  # Required for sklearn wrapper
     #   p = p[:, 1]  # If proba array contains proba for both 0 and 1 classes, just pick class 1
     return ginic(a, p) / ginic(a, a)
+
+def gini_xgb(preds, dtrain):
+    labels = dtrain.get_label()
+    gini_score = -gini_normalizedc(labels, preds)
+    return [('gini', gini_score)]
