@@ -57,15 +57,19 @@ def replace_na(df):
     #df[categorical_features] = df[categorical_features].apply(lambda x: x.fillna(x.value_counts().index[0]))
     return (df)
 
-def ultimeload(pathTrain, pathTest):
+def ultimeload(pathTrain, pathTest, returnID = False):
     train, test = read_data(pathTrain, pathTest)
     X_train = train.iloc[:, 2:]
     y_train = train.target
     X_test = test.iloc[:,1:]
     test_ids = test['id']
+    train_ids = train['id']
     X_train, X_test = replace_na(X_train), replace_na(X_test)
     X_train, X_test = create_dummies(X_train), create_dummies(X_test)
-    return (y_train, X_train, X_test, test_ids)
+    if returnID:
+        return (y_train, X_train, X_test, test_ids, train_ids)
+    else:
+        return (y_train, X_train, X_test, test_ids)
 
 def createSubmission(SubmissionName, predProb, test_ids):
     submit = pd.DataFrame({'id': test_ids, 'target': predProb})

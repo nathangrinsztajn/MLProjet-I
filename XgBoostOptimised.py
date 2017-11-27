@@ -14,10 +14,10 @@ from Gini import *
 y_valid_pred = 0*y
 y_test_pred = 0
 
-MAX_ROUNDS = 400
+MAX_ROUNDS = 5000
 OPTIMIZE_ROUNDS = True
 LEARNING_RATE = 0.07
-EARLY_STOPPING_ROUNDS = 10 #50
+EARLY_STOPPING_ROUNDS = 40 #50
 
 # Set up folds
 K = 5
@@ -71,7 +71,7 @@ for i, (train_index, test_index) in enumerate(kf.split(X)):
     y_valid_pred.iloc[test_index] = pred
 
     # Accumulate test set predictions
-    y_test_pred += fit_model.predict_proba(X_test)[:, 1]
+    y_test_pred += fit_model.predict_proba(X_test, ntree_limit= model.best_ntree_limit)[:, 1]
 
     del y_valid, X_train, X_valid, y_train
 
@@ -79,6 +79,6 @@ for i, (train_index, test_index) in enumerate(kf.split(X)):
 y_test_pred /= K  # Average test set predictions
 
 print("\nGini for full training set:")
-gini_normalizedc(y, y_valid_pred)
+print(gini_normalizedc(y, y_valid_pred))
 
-ld.createSubmission("nouveauXGB", y_test_pred, test_ids)
+ld.createSubmission("nouveauXGB3.csv", y_test_pred, test_ids)

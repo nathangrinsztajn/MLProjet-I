@@ -15,6 +15,8 @@ from keras.callbacks import EarlyStopping, ModelCheckpoint, CSVLogger, Callback
 from keras.wrappers.scikit_learn import KerasClassifier
 from h5py import *
 
+import load_data as ld
+
 
 class roc_auc_callback(Callback):
     def __init__(self,training_data,validation_data):
@@ -89,7 +91,6 @@ def load_data(path_train=DATA_TRAIN_PATH, path_test=DATA_TEST_PATH):
     return train, train_labels, test, train_ids, test_ids
 
 
-
 folds = 4
 runs = 1 #2
 
@@ -122,6 +123,7 @@ test = train_test_scaled[n_train:, :]
 print('\n Shape of processed train data:', train.shape)
 print(' Shape of processed test data:', test.shape)
 
+
 patience = 25 #10
 batchsize = 128
 
@@ -136,6 +138,8 @@ for i, (train_index, test_index) in enumerate(skf.split(train, target)):
     y_train, y_val = target[train_index], target[test_index]
     train_ids, val_ids = tr_ids[train_index], tr_ids[test_index]
 
+    print(X_train)
+    print(y_train)
 
     # This is where we define and compile the model. These parameters are not optimal, as they were chosen
     # to get a notebook to complete in 60 minutes. Other than leaving BatchNormalization and last sigmoid
